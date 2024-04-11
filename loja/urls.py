@@ -20,6 +20,9 @@ from django.conf.urls.static import static
 from django.conf import settings
 
 urlpatterns = [
+    path('', include('produto.urls')),
+    path('perfil/', include('perfil.urls')),
+    path('pedido/', include('pedido.urls')),
     path('admin/', admin.site.urls),
 ]
 # TODO: Remover debug toolbar
@@ -27,4 +30,4 @@ if settings.DEBUG:
     import debug_toolbar
     urlpatterns = [
         path("__debug__/", include("debug_toolbar.urls")),
-    ] +urlpatterns
+    ] + urlpatterns
