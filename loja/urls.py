@@ -24,7 +24,11 @@ urlpatterns = [
     path('perfil/', include('perfil.urls')),
     path('pedido/', include('pedido.urls')),
     path('admin/', admin.site.urls),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Adicionar linha abaixo apos urlpatterns para imagem aparecer no site
+# + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 # TODO: Remover debug toolbar
 if settings.DEBUG:
     import debug_toolbar
