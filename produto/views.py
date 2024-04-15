@@ -30,18 +30,18 @@ class AdicionarAoCarrinho(View):
             reverse('produto:lista')
         )
         variacao_id = self.request.GET.get('vid')
- 
+
         if not variacao_id:
             messages.error(
                 self.request,
                 'Produto não existe'
             )
             return redirect(http_referer)
- 
+
         variacao = get_object_or_404(models.Variacao, id=variacao_id)
         variacao_estoque = variacao.estoque
         produto = variacao.produto
- 
+
         produto_id = produto.id
         produto_nome = produto.nome
         variacao_nome = variacao.nome or ''
@@ -50,29 +50,29 @@ class AdicionarAoCarrinho(View):
         quantidade = 1
         slug = produto.slug
         imagem = produto.imagem
- 
+
         if imagem:
             imagem = imagem.name
         else:
             imagem = ''
- 
+
         if variacao.estoque < 1:
             messages.error(
                 self.request,
                 'Estoque insuficiente'
             )
             return redirect(http_referer)
- 
+
         if not self.request.session.get('carrinho'):
             self.request.session['carrinho'] = {}
             self.request.session.save()
- 
+
         carrinho = self.request.session['carrinho']
- 
+
         if variacao_id in carrinho:
             quantidade_carrinho = carrinho[variacao_id]['quantidade']
             quantidade_carrinho += 1
- 
+
             if variacao_estoque < quantidade_carrinho:
                 messages.warning(
                     self.request,
@@ -81,7 +81,7 @@ class AdicionarAoCarrinho(View):
                     f'no seu carrinho.'
                 )
                 quantidade_carrinho = variacao_estoque
- 
+
             carrinho[variacao_id]['quantidade'] = quantidade_carrinho
             carrinho[variacao_id]['preco_quantitativo'] = preco_unitario * \
                 quantidade_carrinho
@@ -101,28 +101,57 @@ class AdicionarAoCarrinho(View):
                 'slug': slug,
                 'imagem': imagem,
             }
- 
+
         print(carrinho)
         self.request.session.save()
- 
+
         messages.success(
             self.request,
             f'Produto {produto_nome} {variacao_nome} adicionado ao seu '
             f'carrinho {carrinho[variacao_id]["quantidade"]}x.'
         )
- 
+
         return redirect(http_referer)
+
 
 class RemoverDoCarrinho(View):
     def get(self, *args, **kwargs):
+        http_referer = self.request.META.get(
+            'HTTP_REFERER',
+            reverse('produto:lista')
+        )
+        variacao_id = self.request.GET.get('vid')
+        
+        if not variacao_id:
+                return redirect(http_referer)
+        if not self.request.session.get('carrinho'):
+                return redirect(http_referer)
+        if variacao_id not in self.request.session['carrinho']:
+            return redirect(http_referer)
+        
+        carrinho = self.request.session['carrinho'][variacao_id]
+
+        messages.success(
+            self.request,
+            f'produto {carrinho["produto_nome"]} {carrinho["variacao_nome"]}'
+            f'foi removido do seu carrinho'
+        )
+
+        del self.request.session['carrinho'][variacao_id]
+        self.request.session.save()
+        return redirect(http_referer)
+        
         return HttpResponse('RemoverDoCarrinho')
 
 
 class Carrinho(View):
     def get(self, *args, **kwargs):
-        return render(self.request, 'produto/carrinho.html')
+        contexto = {
+            'carrinho':self.request.session.get('carrinho',{})
+        }
+        return render(self.request, 'produto/carrinho.html', contexto)
 
 
-class Finalizar(View):
+class ResumoDaCompra(View):
     def get(self, *args, **kwargs):
         return HttpResponse('Finalizar')
