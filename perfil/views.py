@@ -56,7 +56,10 @@ class BasePerfil(View):
 class Criar(BasePerfil):
     def post(self, *args, **kwargs):
         if not self.userform.is_valid() or not self.perfilform.is_valid():
-            # if not self.userform.is_valid():
+            messages.error(
+                self.request,
+                'Existem erros no formulario. Verifique se todos com campos foram preenchidos corretamente.'
+            )
 
             return self.renderizar
 
@@ -120,7 +123,7 @@ class Criar(BasePerfil):
             'Voce fez login e pode finalizar sua compra'
         )
 
-        return redirect('perfil:criar')
+        return redirect('produto:carrinho')
 
         # return self.renderizar
 
