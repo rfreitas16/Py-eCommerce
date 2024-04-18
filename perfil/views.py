@@ -1,9 +1,10 @@
-from django.shortcuts import render, get_object_or_404
+from django.contrib import messages
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView
 from django.views import View
 from django.http import HttpResponse
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from . import models
 from . import forms
 import copy
@@ -15,7 +16,7 @@ class BasePerfil(View):
 
     def setup(self, *args, **kwargs):
         super().setup(*args, **kwargs)
-        #recriando carrinho para nao perder a sessao
+        # recriando carrinho para nao perder a sessao
         self.carrinho = copy.deepcopy(self.request.session.get('carrinho', {}))
 
         self.perfil = None
@@ -55,10 +56,9 @@ class BasePerfil(View):
 class Criar(BasePerfil):
     def post(self, *args, **kwargs):
         if not self.userform.is_valid() or not self.perfilform.is_valid():
-        # if not self.userform.is_valid():
-            print('invalido')
+            # if not self.userform.is_valid():
+
             return self.renderizar
-            print('valido')
 
         username = self.userform.cleaned_data.get('username')
         password = self.userform.cleaned_data.get('password')
@@ -80,7 +80,7 @@ class Criar(BasePerfil):
             usuario.first_name = first_name
             usuario.last_name = last_name
             usuario.save()
-            
+
             if not self.perfil:
                 self.perfilform.cleaned_data['usuario'] = usuario
                 perfil = models.Perfil(**self.perfilform.cleaned_data)
@@ -111,7 +111,18 @@ class Criar(BasePerfil):
         self.request.session['carrinho'] = self.carrinho
         self.request.session.save()
 
-        return self.renderizar
+        messages.success(
+            self.request,
+            'Seu cadastro foi criado ou atualizado com sucesso'
+        )
+        messages.success(
+            self.request,
+            'Voce fez login e pode finalizar sua compra'
+        )
+
+        return redirect('perfil:criar')
+
+        # return self.renderizar
 
 
 class Atualizar(View):
@@ -120,10 +131,41 @@ class Atualizar(View):
 
 
 class Login(View):
-    def get(self, *args, **kwargs):
-        return HttpResponse('Login')
+    def post(self, *args, **kwargs):
+        username = self.request.POST.get('username')
+        password = self.request.POST.get('password')
+
+        if not username or not password:
+            messages.error(
+                self.request,
+                'Usuario ou senha invalidos'
+            )
+            return redirect('perfil:criar')
+
+        usuario = authenticate(
+            self.request, username=username, password=password)
+
+        if not usuario:
+            messages.error(
+                self.request,
+                'Usuario ou senha invalidos'
+            )
+            return redirect('perfil:criar')
+        
+        login(self.request, user=usuario)
+        messages.success(
+                self.request,
+                'Voce fez login no sistema'
+        )
+        return redirect('produto:carrinho')
 
 
 class Logout(View):
     def get(self, *args, **kwargs):
-        return HttpResponse('Logout')
+        carrinho = copy.deepcopy(self.request.session.get('carrinho'))
+
+        logout(self.request)
+
+        self.request.session['carrinho'] = carrinho
+        self.request.session.save()
+        return redirect('produto:lista')
